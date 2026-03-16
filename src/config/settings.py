@@ -2,17 +2,13 @@ from pydantic_settings import BaseSettings
 from typing import Optional
 
 class Settings(BaseSettings):
-    # LLM
     GROQ_API_KEY: str
     GROQ_MODEL: str = "llama3-8b-8192"
 
-    # Embeddings
     HF_EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
 
-    # Environment
     ENVIRONMENT: str = "local"
 
-    # Vector DB - Local
     CHROMA_PATH: str = "./chroma_db"
 
     # Vector DB - Production
@@ -28,7 +24,6 @@ class Settings(BaseSettings):
     # Memory
     MAX_HISTORY: int = 10
 
-    # LangSmith
     LANGCHAIN_API_KEY: Optional[str] = None
     LANGCHAIN_TRACING_V2: bool = True
     LANGCHAIN_PROJECT: str = "enterprise-legal-counsel-ai"
