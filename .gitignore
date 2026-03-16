@@ -1,0 +1,45 @@
+# Environment
+.env
+.env.local
+.env.production
+
+# Virtual Environment
+venv/
+env/
+.venv/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Vector Databases
+chroma_db/
+faiss_index/
+
+# ML & Monitoring
+mlruns/
+.langsmith/
+
+# Testing
+.pytest_cache/
+htmlcov/
+.coverage
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+session_logs/
+
+# Docker
+.dockerignore
