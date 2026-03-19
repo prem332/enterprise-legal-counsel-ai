@@ -69,7 +69,7 @@ def legal_researcher_agent(state: LegalState) -> LegalState:
         )
         state["rag_answer"] = result["answer"]
         state["citations"] = result["citations"]
-    except Exception as e:
+    except Exception:
         state["rag_answer"] = ""
         state["citations"] = []
 

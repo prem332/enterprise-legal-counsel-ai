@@ -1,8 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
-from typing import List
 from src.rag.pipeline import ingest_documents
 from src.security.rate_limiter import validate_pdf
-from src.config.settings import settings
 import tempfile
 import os
 

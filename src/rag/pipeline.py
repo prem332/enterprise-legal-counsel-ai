@@ -3,8 +3,6 @@ from langchain.chains import ConversationalRetrievalChain
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores import FAISS
-from langchain_community.retrievers import BM25Retriever
-from langchain.retrievers import EnsembleRetriever
 from src.rag.vectorstore import get_vectorstore
 from src.rag.citations import extract_citations, format_citations, format_legal_disclaimer
 from src.rag.embeddings import get_embeddings
@@ -12,8 +10,6 @@ from src.memory.chat_history import get_or_create_session
 from src.logging.session_logger import log_interaction
 from src.config.settings import settings
 import time
-import tempfile
-import os
 
 llm = ChatGroq(
     api_key=settings.GROQ_API_KEY,

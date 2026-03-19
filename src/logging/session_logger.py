@@ -37,19 +37,15 @@ def log_interaction(
         "error": error
     }
 
-    # Each session gets own log file
     log_file = os.path.join(LOG_DIR, f"{session_id}.json")
 
-    # Load existing logs for this session
     existing_logs = []
     if os.path.exists(log_file):
         with open(log_file, "r") as f:
             existing_logs = json.load(f)
 
-    # Append new entry
     existing_logs.append(log_entry)
 
-    # Save back to file
     with open(log_file, "w") as f:
         json.dump(existing_logs, f, indent=2)
 
@@ -65,8 +61,8 @@ def get_session_stats(session_id: str) -> dict:
     if not logs:
         return {}
 
-    response_times = [l["response_time_ms"] for l in logs]
-    citations = [l["citations_count"] for l in logs]
+    response_times = [log["response_time_ms"] for log in logs]
+    citations = [log["citations_count"] for log in logs]
 
     return {
         "session_id": session_id,
@@ -77,6 +73,6 @@ def get_session_stats(session_id: str) -> dict:
         "total_citations_found": sum(citations),
         "pdf_uploaded": any(l["pdf_uploaded"] for l in logs),
         "errors_count": sum(
-            1 for l in logs if l["error"] is not None
+            1 for log in logs if log["error"] is not None
         )
     }
