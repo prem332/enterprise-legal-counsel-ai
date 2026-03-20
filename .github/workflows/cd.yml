@@ -7,34 +7,39 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # Only run if AWS secrets are configured
-    if: ${{ secrets.AWS_ACCESS_KEY_ID != '' }}
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Login to Amazon ECR
+        id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Build and Push Docker image
+      - name: Build, Tag and Push Docker image to ECR
+        env:
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+          IMAGE_NAME: enterprise-legal-counsel-ai
         run: |
-          docker build -t enterprise-legal-counsel-ai .
-          docker tag enterprise-legal-counsel-ai:latest \
-            ${{ secrets.ECR_REGISTRY }}/enterprise-legal-counsel-ai:latest
-          docker push \
-            ${{ secrets.ECR_REGISTRY }}/enterprise-legal-counsel-ai:latest
+          docker build -t $IMAGE_NAME .
+          docker tag $IMAGE_NAME:latest $ECR_REGISTRY/$IMAGE_NAME:latest
+          docker push $ECR_REGISTRY/$IMAGE_NAME:latest
+          echo "Image pushed to ECR successfully!"
 
       - name: Deploy to AWS Lambda
+        env:
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+          IMAGE_NAME: enterprise-legal-counsel-ai
         run: |
           aws lambda update-function-code \
-            --function-name enterprise-legal-counsel-ai \
-            --image-uri \
-            ${{ secrets.ECR_REGISTRY }}/enterprise-legal-counsel-ai:latest
+            --function-name $IMAGE_NAME \
+            --image-uri $ECR_REGISTRY/$IMAGE_NAME:latest \
+            --region ${{ secrets.AWS_REGION }}
+          echo "Lambda deployed successfully!"
