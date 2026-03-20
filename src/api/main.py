@@ -6,6 +6,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from src.api.routes import chat, documents, logs
 from src.security.rate_limiter import limiter
+from mangum import Mangum
 import os
 
 app = FastAPI(
@@ -75,3 +76,5 @@ async def server_error_handler(request: Request, exc):
         status_code=500,
         content={"error": "Internal server error. Please try again."}
     )
+
+handler = Mangum(app, lifespan="off")
