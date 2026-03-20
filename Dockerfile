@@ -15,6 +15,8 @@ RUN mkdir -p faiss_index
 RUN mkdir -p chroma_db
 
 EXPOSE 8000
+ENV PORT=8000
+ENV AWS_LWA_PORT=8000
 
 # Start server
-CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "0.0.0.0"]
+CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
