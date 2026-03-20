@@ -1,6 +1,8 @@
-FROM public.ecr.aws/lambda/python:3.10
+FROM python:3.10-slim
 
-WORKDIR /var/task
+WORKDIR /app
+
+COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:0.7.1 /lambda-adapter /opt/extensions/lambda-adapter
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
@@ -15,4 +17,4 @@ RUN mkdir -p chroma_db
 EXPOSE 8000
 
 # Start server
-CMD ["src.api.main.handler"]
+CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "0.0.0.0"]
