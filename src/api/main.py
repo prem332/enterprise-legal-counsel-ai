@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from mangum import Mangum
 from src.api.routes import chat, documents, logs
 from src.security.rate_limiter import limiter
 import os
@@ -76,7 +77,6 @@ async def server_error_handler(request: Request, exc):
         content={"error": "Internal server error. Please try again."}
     )
 
-from mangum import Mangum
 handler = Mangum(app, lifespan="off")
 
 if __name__ == "__main__":
