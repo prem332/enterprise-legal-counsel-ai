@@ -76,6 +76,8 @@ async def server_error_handler(request: Request, exc):
         content={"error": "Internal server error. Please try again."}
     )
 
+from mangum import Mangum
+handler = Mangum(app, lifespan="off")
 
 if __name__ == "__main__":
     import uvicorn
