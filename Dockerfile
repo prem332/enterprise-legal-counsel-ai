@@ -5,13 +5,15 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+ENV TRANSFORMERS_CACHE=/app/models
+ENV HF_HOME=/app/models
+ENV SENTENCE_TRANSFORMERS_HOME=/app/models
+ENV XDG_CACHE_HOME=/app/models
+
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')"
+
 COPY src/ ./src/
 COPY static/ ./static/
-
-ENV TRANSFORMERS_CACHE=/tmp/huggingface
-ENV HF_HOME=/tmp/huggingface
-ENV SENTENCE_TRANSFORMERS_HOME=/tmp/sentence_transformers
-ENV XDG_CACHE_HOME=/tmp/cache
 
 EXPOSE 8000
 
