@@ -2,7 +2,6 @@ import json
 import os
 from datetime import datetime
 from typing import Optional
-import os
 
 LOG_DIR = "/tmp/session_logs" if os.environ.get("ENVIRONMENT") == "production" else "session_logs"
 
