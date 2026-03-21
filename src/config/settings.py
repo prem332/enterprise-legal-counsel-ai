@@ -9,7 +9,7 @@ class Settings(BaseSettings):
 
     ENVIRONMENT: str = "local"
 
-    CHROMA_PATH: str = "./chroma_db"
+    CHROMA_PATH: str = "/tmp/chroma_db"
 
     # Vector DB - Production
     PINECONE_API_KEY: Optional[str] = None

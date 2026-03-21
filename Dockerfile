@@ -8,9 +8,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY src/ ./src/
 COPY static/ ./static/
 
-RUN mkdir -p session_logs
-RUN mkdir -p faiss_index
-RUN mkdir -p chroma_db
+ENV TRANSFORMERS_CACHE=/tmp/huggingface
+ENV HF_HOME=/tmp/huggingface
+ENV SENTENCE_TRANSFORMERS_HOME=/tmp/sentence_transformers
+ENV XDG_CACHE_HOME=/tmp/cache
 
 EXPOSE 8000
 

@@ -2,8 +2,9 @@ import json
 import os
 from datetime import datetime
 from typing import Optional
+import os
 
-LOG_DIR = "session_logs"
+LOG_DIR = "/tmp/session_logs" if os.environ.get("ENVIRONMENT") == "production" else "session_logs"
 
 def ensure_log_dir():
     if not os.path.exists(LOG_DIR):
