@@ -4,6 +4,12 @@
 
 ![CI](https://github.com/prem332/enterprise-legal-counsel-ai/actions/workflows/ci.yml/badge.svg)
 
+## 🌐 Live Demo
+
+**[https://enterprise-legal-counsel-ai.duckdns.org](https://enterprise-legal-counsel-ai.duckdns.org)**
+
+> Deployed on AWS EC2 (ap-south-1) with HTTPS via Let's Encrypt
+
 ---
 
 ## 🎯 Project Overview
@@ -19,6 +25,8 @@ Enterprise Legal Counsel AI is an AI-powered legal assistant that helps Indian c
 ## 🏗️ Architecture
 ```
 User Request
+      ↓
+Nginx (HTTPS Reverse Proxy)
       ↓
 FastAPI REST API (Rate Limited + Input Validated)
       ↓
@@ -39,8 +47,8 @@ React Frontend (Session Stats + Chat History)
 
 | Layer | Technology |
 |-------|-----------|
-| LLM | LLaMA 3 via Groq API |
-| Embeddings | HuggingFace MiniLM (384d) |
+| LLM | LLaMA 3 (llama-3.3-70b-versatile) via Groq API |
+| Embeddings | HuggingFace MiniLM (sentence-transformers/all-MiniLM-L6-v2) |
 | Orchestration | LangChain + LangGraph |
 | Vector DB (Local) | ChromaDB |
 | Vector DB (Production) | Pinecone |
@@ -49,15 +57,32 @@ React Frontend (Session Stats + Chat History)
 | Monitoring | LangSmith |
 | Containerization | Docker |
 | CI/CD | GitHub Actions |
-| Deployment | AWS Lambda + ECR |
+| Server | AWS EC2 t3.micro (ap-south-1) |
+| Reverse Proxy | Nginx |
+| SSL | Let's Encrypt (Free HTTPS) |
+| Domain | DuckDNS (Free) |
+| Container Registry | AWS ECR |
+
+---
+
+## 📊 Production Metrics
+(Monitored via LangSmith)
+
+| Metric | Value |
+|--------|-------|
+| P50 Latency | 2.18s |
+| P99 Latency | 2.65s |
+| Error Rate | 0% |
+| Avg Tokens/Query | ~829 |
+| Monthly Cost | $0.00 |
 
 ---
 
 ## ✨ Features
 
-- Multi-Agent RAG pipeline with LangGraph
-- Hybrid semantic + keyword search
-- Indian law cross-validation (IPC, ICA 1872, Constitution)
+- Multi-Agent RAG pipeline with LangGraph (4 specialized agents)
+- Hybrid semantic + keyword (BM25) search
+- Indian law cross-validation (IPC, ICA 1872, Constitution, Consumer Protection Act)
 - Legal suggestions engine
 - PDF upload with 20MB limit enforcement
 - Chat memory (k=10 sliding window)
@@ -65,6 +90,7 @@ React Frontend (Session Stats + Chat History)
 - Rate limiting (10 req/min)
 - Prompt injection detection
 - Legal disclaimer on every response
+- LangSmith monitoring (latency, tokens, traces)
 - Downloadable session logs
 
 ---
@@ -110,6 +136,8 @@ HF_EMBEDDING_MODEL=     # sentence-transformers/all-MiniLM-L6-v2
 ENVIRONMENT=            # local or production
 PINECONE_API_KEY=       # Pinecone API key
 LANGCHAIN_API_KEY=      # LangSmith API key
+LANGCHAIN_TRACING_V2=   # true or false
+LANGCHAIN_PROJECT=      # enterprise-legal-counsel-ai
 ```
 
 ---
@@ -143,6 +171,7 @@ pytest tests/e2e/ -v
 - Unit Tests (7) → Citations, Memory
 - Integration Tests (2) → Real PDF ingestion
 - E2E Tests (6) → Full API flow
+- **Total: 20/20 tests passing ✅**
 
 ---
 
@@ -160,6 +189,26 @@ docker run -p 8000:8000 \
 
 ---
 
+## ☁️ Deployment Architecture
+```
+GitHub (Code)
+     ↓
+GitHub Actions (CI/CD)
+├── CI: Run tests + Lint
+└── CD: Build Docker → Push to AWS ECR
+              ↓
+         AWS ECR (Container Registry)
+              ↓
+         AWS EC2 t3.micro (Mumbai)
+         ├── Docker Container (App)
+         ├── Nginx (Reverse Proxy)
+         └── Let's Encrypt (SSL)
+              ↓
+    https://enterprise-legal-counsel-ai.duckdns.org
+```
+
+---
+
 ## 📁 Project Structure
 ```
 enterprise-legal-counsel-ai/
@@ -171,7 +220,7 @@ enterprise-legal-counsel-ai/
 │   ├── memory/          # Chat history management
 │   ├── rag/             # RAG pipeline, embeddings, citations
 │   └── security/        # Rate limiting, input validation
-├── static/              # React frontend
+├── static/              # React frontend (inline JSX)
 ├── tests/
 │   ├── unit/            # Unit tests
 │   ├── integration/     # Integration tests with real PDFs
@@ -181,3 +230,31 @@ enterprise-legal-counsel-ai/
 ├── requirements.txt
 └── .github/workflows/   # CI/CD pipelines
 ```
+
+---
+
+## 📈 Monitoring
+
+This project uses **LangSmith** for production observability:
+- Full LLM call tracing for all 4 agents
+- P50/P99 latency monitoring
+- Token usage and cost tracking
+- Real-time error detection
+- Multi-agent step visibility
+
+---
+
+
+## ⚠️ Disclaimer
+
+This application provides AI-generated legal information for educational purposes only.
+This is NOT legal advice. Always consult a qualified lawyer before taking any legal action.
+
+---
+
+## 👨‍💻 Developer
+
+**Prem Kumar** | AI/ML Engineer | Hyderabad, India
+
+- GitHub: [@prem332](https://github.com/prem332)
+- Live Project: [enterprise-legal-counsel-ai.duckdns.org](https://enterprise-legal-counsel-ai.duckdns.org)
