@@ -16,10 +16,10 @@ class Settings(BaseSettings):
     PINECONE_USER_INDEX: str = "user-documents"
 
     # RAG Config
-    CHUNK_SIZE: int = 512
-    CHUNK_OVERLAP: int = 50
-    TOP_K: int = 5
-    SCORE_THRESHOLD: float = 0.5
+    CHUNK_SIZE: int = 256
+    CHUNK_OVERLAP: int = 80
+    TOP_K: int = 4
+    SCORE_THRESHOLD: float = 0.25
 
     # Memory
     MAX_HISTORY: int = 10

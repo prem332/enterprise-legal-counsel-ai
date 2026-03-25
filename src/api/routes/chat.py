@@ -1,11 +1,11 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
-from src.agents.langgraph_flow import run_legal_agents
+from src.agents.langgraph_flow import run_legal_graph
 from src.memory.chat_history import clear_session, get_session_messages
 from src.security.rate_limiter import validate_question
 from src.logging.session_logger import get_session_stats
-import json
+from src.rag import pipeline
 
 router = APIRouter()
 
@@ -18,12 +18,10 @@ class ClearRequest(BaseModel):
 
 @router.post("/query")
 async def chat_query(request: ChatRequest):
-    # Validate and sanitize input
     clean_question = validate_question(request.question)
 
     try:
-        # Run through LangGraph agents
-        result = run_legal_agents(
+        result = run_legal_graph(
             question=clean_question,
             session_id=request.session_id
         )
@@ -37,12 +35,23 @@ async def chat_query(request: ChatRequest):
 
 @router.post("/clear")
 async def clear_chat(request: ClearRequest):
+    # Clear conversation memory
     success = clear_session(request.session_id)
+
+    # Reset PDF uploaded state
+    pipeline.pdf_uploaded = False
+    pipeline.pdf_filename = None
+
+    # Clear all document vectors
+    from src.rag.vectorstore import reset_vectorstore
+    reset_vectorstore()
+
     return {
         "cleared": success,
         "session_id": request.session_id,
-        "message": "Chat cleared successfully" if success else "Session not found"
+        "message": "Chat and document cleared successfully"
     }
+
 
 @router.get("/history/{session_id}")
 async def get_chat_history(session_id: str):

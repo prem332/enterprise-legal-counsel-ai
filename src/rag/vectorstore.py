@@ -6,12 +6,14 @@ import os
 
 embeddings = get_embeddings()
 
+
 def get_chroma_store():
     return Chroma(
         collection_name="legal-documents",
         embedding_function=embeddings,
         persist_directory=settings.CHROMA_PATH
     )
+
 
 def get_pinecone_store():
     from langchain_pinecone import PineconeVectorStore
@@ -34,8 +36,9 @@ def get_pinecone_store():
         embedding=embeddings
     )
 
+
 def get_faiss_store():
-    faiss_path = "faiss_index"
+    faiss_path = "/tmp/faiss_index" if settings.ENVIRONMENT == "production" else "faiss_index"
     if os.path.exists(faiss_path):
         return FAISS.load_local(
             faiss_path,
@@ -43,6 +46,7 @@ def get_faiss_store():
             allow_dangerous_deserialization=True
         )
     return None
+
 
 def get_vectorstore():
     if settings.ENVIRONMENT == "local":
@@ -63,3 +67,29 @@ def get_vectorstore():
             if faiss:
                 return faiss, "faiss"
             raise Exception("Pinecone and FAISS both unavailable!")
+
+def reset_vectorstore():
+    """Clears all uploaded document vectors."""
+    try:
+        if settings.ENVIRONMENT == "local":
+            import shutil
+            # Delete ChromaDB folder completely
+            if os.path.exists(settings.CHROMA_PATH):
+                shutil.rmtree(settings.CHROMA_PATH)
+                print("ChromaDB folder deleted!")
+        else:
+            from pinecone import Pinecone
+            pc = Pinecone(api_key=settings.PINECONE_API_KEY)
+            index = pc.Index(settings.PINECONE_USER_INDEX)
+            index.delete(delete_all=True)
+            print("Pinecone index cleared!")
+
+        # Clear FAISS backup
+        faiss_path = "/tmp/faiss_index" if settings.ENVIRONMENT == "production" else "faiss_index"
+        if os.path.exists(faiss_path):
+            import shutil
+            shutil.rmtree(faiss_path)
+            print("FAISS index cleared!")
+
+    except Exception as e:
+        print(f"Warning: Could not reset vectorstore: {e}")

@@ -23,7 +23,7 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Build, Tag and Push Docker image to ECR
+      - name: Build Tag and Push Docker image to ECR
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
           IMAGE_NAME: enterprise-legal-counsel-ai
@@ -33,13 +33,9 @@ jobs:
           docker push $ECR_REGISTRY/$IMAGE_NAME:latest
           echo "Image pushed to ECR successfully!"
 
-      - name: Deploy to AWS Lambda
-        env:
-          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
-          IMAGE_NAME: enterprise-legal-counsel-ai
+      - name: Notify Deployment Success
         run: |
-          aws lambda update-function-code \
-            --function-name $IMAGE_NAME \
-            --image-uri $ECR_REGISTRY/$IMAGE_NAME:latest \
-            --region ${{ secrets.AWS_REGION }}
-          echo "Lambda deployed successfully!"
+          echo "Docker image pushed to ECR!"
+          echo "SSH into EC2 and run:"
+          echo "sudo docker pull ${{ secrets.ECR_REGISTRY }}/enterprise-legal-counsel-ai:latest"
+          echo "sudo docker restart legal-counsel"

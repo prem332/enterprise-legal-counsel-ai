@@ -52,6 +52,23 @@
                 messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
             }, [messages]);
 
+            // Clear session on browser refresh or tab close
+            useEffect(() => {
+                const handleBeforeUnload = () => {
+                    if (sessionId) {
+                        navigator.sendBeacon(
+                            `${API_BASE}/api/v1/chat/clear`,
+                            new Blob(
+                                [JSON.stringify({ session_id: sessionId })],
+                                { type: "application/json" }
+                            )
+                        );
+                    }
+                };
+                window.addEventListener("beforeunload", handleBeforeUnload);
+                return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+            }, [sessionId]);
+
             const handleFileUpload = async (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -163,7 +180,7 @@
             const exampleQueries = [
                 "A police officer is being rude to me. What are my legal rights?",
                 "My landlord refuses to return my security deposit. What can I do?",
-                "What are my rights as a consumer if i receive a defective product?",
+                "What are my rights as a consumer if I receive a defective product?",
                 "Someone has encroached on my land. How do I approach the court?"
             ];
 
