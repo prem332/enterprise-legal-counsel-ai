@@ -182,7 +182,7 @@ VERIFIED INDIAN LAW: {state['law_answer']}
 VERIFICATION STATUS: {verification_status}
 
 Rules:
-1. Start with "From Your Document:" 
+1. Start with "From Your Document:"
 2. Give document answer in 2-3 sentences MAX
 3. If VERIFIED: Confirm briefly
 4. If WARNING or UNVERIFIED: State document may be wrong
