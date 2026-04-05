@@ -3,17 +3,20 @@ from langchain_chroma import Chroma
 from src.rag.embeddings import get_embeddings
 from src.config.settings import settings
 import os
+import chromadb
+from chromadb.config import Settings as ChromaSettings
 
 embeddings = get_embeddings()
-
 
 def get_chroma_store():
     return Chroma(
         collection_name="legal-documents",
         embedding_function=embeddings,
-        persist_directory=settings.CHROMA_PATH
+        persist_directory=settings.CHROMA_PATH,
+        client_settings=ChromaSettings(
+            anonymized_telemetry=False
+        )
     )
-
 
 def get_pinecone_store():
     from langchain_pinecone import PineconeVectorStore

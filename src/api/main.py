@@ -5,6 +5,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from mangum import Mangum
+from fastapi.responses import FileResponse
 from src.api.routes import chat, documents, logs
 from src.security.rate_limiter import limiter
 import os
@@ -43,6 +44,11 @@ app.include_router(
     prefix="/api/v1/logs",
     tags=["Logs"]
 )
+
+@app.get("/favicon.ico")
+async def favicon():
+    return FileResponse("static/favicon.ico")
+
 
 if os.path.exists("static"):
     app.mount(
