@@ -1,0 +1,25 @@
+{
+  "faithfulness": 0.0,
+  "answer_relevancy": 0.0,
+  "individual_scores": {
+    "faithfulness": [
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "relevancy": [
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "questions_tested": 4,
+  "model": "llama-3.3-70b-versatile",
+  "chunk_size": 256,
+  "chunk_overlap": 80,
+  "top_k": 4,
+  "score_threshold": 0.25,
+  "reranking": "FlashrankRerank top_n=4"
+}

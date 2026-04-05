@@ -3,6 +3,8 @@ from langchain.chains import ConversationalRetrievalChain
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores import FAISS
+from langchain.retrievers import ContextualCompressionRetriever
+from langchain_community.document_compressors.flashrank_rerank import FlashrankRerank
 from src.rag.vectorstore import get_vectorstore
 from src.rag.citations import extract_citations, format_citations, format_legal_disclaimer
 from src.rag.embeddings import get_embeddings
@@ -11,19 +13,23 @@ from src.logging.session_logger import log_interaction
 from src.config.settings import settings
 import time
 
+
 llm = ChatGroq(
     api_key=settings.GROQ_API_KEY,
     model_name=settings.GROQ_MODEL,
     temperature=0
 )
 
+
 text_splitter = RecursiveCharacterTextSplitter(
     chunk_size=settings.CHUNK_SIZE,
     chunk_overlap=settings.CHUNK_OVERLAP
 )
 
+
 pdf_uploaded = False
 pdf_filename = None
+
 
 def ingest_documents(files: list) -> dict:
     global pdf_uploaded, pdf_filename
@@ -58,11 +64,38 @@ def ingest_documents(files: list) -> dict:
         "filename": pdf_filename
     }
 
+
+def get_retriever_with_reranking(vectorstore):
+    """
+    Two-stage retrieval:
+    Stage 1: Fetch top 10 by similarity (no score threshold
+             to avoid ChromaDB negative score issue)
+    Stage 2: Rerank using FlashrankRerank to get top 4
+    Falls back to base retriever if reranking fails.
+    """
+
+    base_retriever = vectorstore.as_retriever(
+        search_type="similarity",
+        search_kwargs={"k": 10}
+    )
+
+    try:
+        compressor = FlashrankRerank(top_n=4)
+        retriever = ContextualCompressionRetriever(
+            base_compressor=compressor,
+            base_retriever=base_retriever
+        )
+        print("Reranking enabled: FlashrankRerank top_n=4")
+        return retriever
+    except Exception as e:
+        print(f"Reranking unavailable, using base retriever: {e}")
+        return base_retriever
+
 def query_rag(
     question: str,
     session_id: str = None
 ) -> dict:
-    
+
     start_time = time.time()
 
     # Get or create session memory
@@ -70,21 +103,13 @@ def query_rag(
 
     try:
         if pdf_uploaded:
-            # PDF mode - Hybrid RAG search
             vectorstore, db_used = get_vectorstore()
 
-            semantic_retriever = vectorstore.as_retriever(
-                search_type="similarity_score_threshold",
-                search_kwargs={
-                    "k": settings.TOP_K,
-                    "score_threshold": settings.SCORE_THRESHOLD
-                }
-            )
+            retriever = get_retriever_with_reranking(vectorstore)
 
-            # Build RAG chain
             chain = ConversationalRetrievalChain.from_llm(
                 llm=llm,
-                retriever=semantic_retriever,
+                retriever=retriever,
                 memory=memory,
                 return_source_documents=True,
                 verbose=False
@@ -92,7 +117,14 @@ def query_rag(
 
             result = chain.invoke({"question": question})
             source_docs = result.get("source_documents", [])
-            docs_with_scores = [(doc, 0.9) for doc in source_docs]
+            docs_with_scores = []
+            for doc in source_docs:
+                score = doc.metadata.get(
+                    "relevance_score",
+                    doc.metadata.get("rerank_score", 0.0)
+                )
+                docs_with_scores.append((doc, round(float(score), 4)))
+
             citations = extract_citations(docs_with_scores)
 
         else:

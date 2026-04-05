@@ -133,9 +133,13 @@
                             citations: data.citations
                         }]);
                     } else {
+                        // Show actual error message from backend
+                        const errorMessage = data.detail
+                            || data.message
+                            || "Sorry, something went wrong. Please try again.";
                         setMessages(prev => [...prev, {
                             role: "bot",
-                            content: "Sorry, something went wrong. Please try again.",
+                            content: `⚠️ ${errorMessage}`,
                             domain: null,
                             responseTime: null
                         }]);
