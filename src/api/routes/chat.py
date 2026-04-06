@@ -14,7 +14,7 @@ class ChatRequest(BaseModel):
     session_id: Optional[str] = None
 
 class ClearRequest(BaseModel):
-    session_id: str
+    session_id:  Optional[str] = None
 
 @router.post("/query")
 async def chat_query(request: ChatRequest):
@@ -35,16 +35,20 @@ async def chat_query(request: ChatRequest):
 
 @router.post("/clear")
 async def clear_chat(request: ClearRequest):
-    # Clear conversation memory
-    success = clear_session(request.session_id)
+    
+    if request.session_id:
+        success = clear_session(request.session_id)
+    else:
+        success = True
 
-    # Reset PDF uploaded state
     pipeline.pdf_uploaded = False
     pipeline.pdf_filename = None
 
-    # Clear all document vectors
-    from src.rag.vectorstore import reset_vectorstore
-    reset_vectorstore()
+    try:
+        from src.rag.vectorstore import reset_vectorstore
+        reset_vectorstore()
+    except Exception as e:
+        print(f"Reset warning: {e}")
 
     return {
         "cleared": success,

@@ -158,13 +158,22 @@
             };
 
             const clearChat = async () => {
-                if (sessionId) {
-                    await fetch(`${API_BASE}/api/v1/chat/clear`, {
+                console.log("Clear chat called! SessionId:", sessionId);
+                // Always call clear regardless of sessionId!
+                try {
+                    const response = await fetch(`${API_BASE}/api/v1/chat/clear`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ session_id: sessionId })
+                        body: JSON.stringify({ 
+                            session_id: sessionId || null
+                        })
                     });
+                    const data = await response.json();
+                    console.log("Clear response:", data);
+                } catch (error) {
+                    console.error("Clear error:", error);
                 }
+
                 setMessages([]);
                 setSessionId(null);
                 setPdfUploaded(false);
@@ -172,6 +181,9 @@
                 setUploadStatus(null);
                 setLastDomain(null);
                 setStats({ queries: 0, citations: 0, avgTime: 0 });
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = "";
+                }
             };
 
             const handleKeyPress = (e) => {

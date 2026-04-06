@@ -47,21 +47,8 @@ Question: {state['question']}"""
     return state
 
 def legal_researcher(state: LegalState) -> LegalState:
-    try:
-        # Double check PDF is actually uploaded AND has chunks
-        if pipeline.pdf_uploaded:
-            # Verify ChromaDB actually has documents
-            try:
-                from src.rag.vectorstore import get_vectorstore
-                vectorstore, _ = get_vectorstore()
-                count = vectorstore._collection.count()
-                if count == 0:
-                    # ChromaDB is empty - reset flag!
-                    pipeline.pdf_uploaded = False
-                    pipeline.pdf_filename = None
-            except Exception:
-                pipeline.pdf_uploaded = False
 
+    try:
         if pipeline.pdf_uploaded:
             result = pipeline.query_rag(
                 question=state["question"],
@@ -72,9 +59,12 @@ def legal_researcher(state: LegalState) -> LegalState:
         else:
             state["rag_answer"] = ""
             state["citations"] = []
-    except Exception:
+
+    except Exception as e:
+        print(f"Legal researcher error: {e}")
         state["rag_answer"] = ""
         state["citations"] = []
+
     return state
 
 def law_checker(state: LegalState) -> LegalState:

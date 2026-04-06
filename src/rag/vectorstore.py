@@ -24,7 +24,16 @@ def get_pinecone_store():
 
     pc = Pinecone(api_key=settings.PINECONE_API_KEY)
 
-    if settings.PINECONE_USER_INDEX not in pc.list_indexes().names():
+    existing = pc.list_indexes().names()
+    
+    if settings.PINECONE_USER_INDEX in existing:
+        index_info = pc.describe_index(settings.PINECONE_USER_INDEX)
+        if index_info.dimension != 384:
+            print(f"Dimension mismatch! Deleting and recreating index...")
+            pc.delete_index(settings.PINECONE_USER_INDEX)
+            existing = []
+
+    if settings.PINECONE_USER_INDEX not in existing:
         pc.create_index(
             name=settings.PINECONE_USER_INDEX,
             dimension=384,
@@ -34,6 +43,8 @@ def get_pinecone_store():
                 region="us-east-1"
             )
         )
+        print(f"Created fresh Pinecone index: {settings.PINECONE_USER_INDEX}")
+
     return PineconeVectorStore(
         index_name=settings.PINECONE_USER_INDEX,
         embedding=embeddings
@@ -76,10 +87,9 @@ def reset_vectorstore():
     try:
         if settings.ENVIRONMENT == "local":
             import shutil
-            # Delete ChromaDB folder completely
             if os.path.exists(settings.CHROMA_PATH):
                 shutil.rmtree(settings.CHROMA_PATH)
-                print("ChromaDB folder deleted!")
+                print(f"ChromaDB deleted: {settings.CHROMA_PATH}")
         else:
             from pinecone import Pinecone
             pc = Pinecone(api_key=settings.PINECONE_API_KEY)
@@ -87,12 +97,23 @@ def reset_vectorstore():
             index.delete(delete_all=True)
             print("Pinecone index cleared!")
 
+            import time
+            time.sleep(2)
+            stats = index.describe_index_stats()
+            print(f"Pinecone vector count after clear: {stats.total_vector_count}")
+
         # Clear FAISS backup
-        faiss_path = "/tmp/faiss_index" if settings.ENVIRONMENT == "production" else "faiss_index"
-        if os.path.exists(faiss_path):
-            import shutil
-            shutil.rmtree(faiss_path)
-            print("FAISS index cleared!")
+        for faiss_path in ["faiss_index", "/tmp/faiss_index"]:
+            if os.path.exists(faiss_path):
+                import shutil
+                shutil.rmtree(faiss_path)
+                print(f"FAISS cleared: {faiss_path}")
+
+        # Reset pipeline flags
+        from src.rag import pipeline as p
+        p.pdf_uploaded = False
+        p.pdf_filename = None
+        print("Pipeline flags reset!")
 
     except Exception as e:
-        print(f"Warning: Could not reset vectorstore: {e}")
+        print(f"Reset warning: {e}")

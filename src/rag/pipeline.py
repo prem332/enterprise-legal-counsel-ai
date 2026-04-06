@@ -64,16 +64,11 @@ def ingest_documents(files: list) -> dict:
         "filename": pdf_filename
     }
 
-
 def get_retriever_with_reranking(vectorstore):
     """
-    Two-stage retrieval:
-    Stage 1: Fetch top 10 by similarity (no score threshold
-             to avoid ChromaDB negative score issue)
-    Stage 2: Rerank using FlashrankRerank to get top 4
-    Falls back to base retriever if reranking fails.
+    Two-stage retrieval with environment-aware settings.
+    Pinecone uses different score ranges than ChromaDB!
     """
-
     base_retriever = vectorstore.as_retriever(
         search_type="similarity",
         search_kwargs={"k": 10}
@@ -88,8 +83,9 @@ def get_retriever_with_reranking(vectorstore):
         print("Reranking enabled: FlashrankRerank top_n=4")
         return retriever
     except Exception as e:
-        print(f"Reranking unavailable, using base retriever: {e}")
+        print(f"Reranking unavailable: {e}")
         return base_retriever
+
 
 def query_rag(
     question: str,
