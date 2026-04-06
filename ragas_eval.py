@@ -29,7 +29,7 @@ llm = ChatGroq(
 )
 
 
-def call_llm_with_delay(prompt: str, delay: int = 5) -> str:
+def call_llm(prompt: str, delay: int = 5) -> str:
     """Call LLM with delay to avoid rate limits."""
     time.sleep(delay)
     response = llm.invoke([HumanMessage(content=prompt)])
@@ -39,27 +39,24 @@ def call_llm_with_delay(prompt: str, delay: int = 5) -> str:
 def score_faithfulness(answer: str, context: str) -> float:
     """
     Faithfulness: Is the answer grounded in the context?
-    Score 1.0 if answer is supported by context, 0.0 if not.
+    1.0 = fully supported, 0.0 = not supported
     """
-    prompt = f"""You are an evaluator. Check if the answer is 
-supported by the given context.
+    prompt = f"""You are an evaluator checking if an answer 
+is supported by the given context.
 
 Context: {context}
 
 Answer: {answer}
 
 Is every claim in the answer supported by the context?
-Reply with only a number between 0 and 1.
+Reply with ONLY a number between 0 and 1.
 1.0 = fully supported by context
 0.5 = partially supported
-0.0 = not supported at all
-
-Reply with ONLY the number, nothing else."""
+0.0 = not supported at all"""
 
     try:
-        result = call_llm_with_delay(prompt, delay=5)
-        score = float(result.strip())
-        return min(max(score, 0.0), 1.0)
+        result = call_llm(prompt, delay=5)
+        return min(max(float(result.strip()), 0.0), 1.0)
     except Exception as e:
         print(f"    Faithfulness error: {e}")
         return 0.0
@@ -68,37 +65,87 @@ Reply with ONLY the number, nothing else."""
 def score_answer_relevancy(question: str, answer: str) -> float:
     """
     Answer Relevancy: Does the answer address the question?
-    Score 1.0 if fully relevant, 0.0 if not relevant.
+    1.0 = perfectly relevant, 0.0 = not relevant
     """
-    prompt = f"""You are an evaluator. Check if the answer 
-is relevant to the question.
+    prompt = f"""You are an evaluator checking if an answer 
+is relevant to the question asked.
 
 Question: {question}
 
 Answer: {answer}
 
 How relevant is the answer to the question?
-Reply with only a number between 0 and 1.
+Reply with ONLY a number between 0 and 1.
 1.0 = perfectly answers the question
 0.5 = partially answers
-0.0 = does not answer the question
-
-Reply with ONLY the number, nothing else."""
+0.0 = does not answer the question"""
 
     try:
-        result = call_llm_with_delay(prompt, delay=5)
-        score = float(result.strip())
-        return min(max(score, 0.0), 1.0)
+        result = call_llm(prompt, delay=5)
+        return min(max(float(result.strip()), 0.0), 1.0)
     except Exception as e:
         print(f"    Relevancy error: {e}")
         return 0.0
 
 
+def score_context_precision(question: str, context: str) -> float:
+    """
+    Context Precision: Is the retrieved context relevant to the question?
+    1.0 = highly relevant context, 0.0 = irrelevant context
+    """
+    prompt = f"""You are an evaluator checking if the retrieved 
+context is relevant and useful for answering the question.
+
+Question: {question}
+
+Retrieved Context: {context}
+
+How relevant and precise is the context for answering this question?
+Reply with ONLY a number between 0 and 1.
+1.0 = context is perfectly relevant and useful
+0.5 = context is partially relevant
+0.0 = context is irrelevant or unhelpful"""
+
+    try:
+        result = call_llm(prompt, delay=5)
+        return min(max(float(result.strip()), 0.0), 1.0)
+    except Exception as e:
+        print(f"    Context Precision error: {e}")
+        return 0.0
+
+
+def score_context_recall(ground_truth: str, context: str) -> float:
+    """
+    Context Recall: Does the context contain the ground truth information?
+    1.0 = context has all needed info, 0.0 = context missing needed info
+    """
+    prompt = f"""You are an evaluator checking if the retrieved 
+context contains enough information to arrive at the ground truth answer.
+
+Ground Truth Answer: {ground_truth}
+
+Retrieved Context: {context}
+
+Does the context contain the information needed to produce the ground truth?
+Reply with ONLY a number between 0 and 1.
+1.0 = context fully contains all needed information
+0.5 = context partially contains needed information
+0.0 = context is missing the needed information"""
+
+    try:
+        result = call_llm(prompt, delay=5)
+        return min(max(float(result.strip()), 0.0), 1.0)
+    except Exception as e:
+        print(f"    Context Recall error: {e}")
+        return 0.0
+
+
 def run_ragas_evaluation(pdf_path: str):
-    print("Starting Manual RAGAS Evaluation for LexAI...")
+    print("Starting RAGAS Evaluation for LexAI...")
     print(f"PDF: {pdf_path}")
     print(f"Questions: {len(TEST_QUESTIONS)}")
-    print("-" * 50)
+    print(f"Metrics: Faithfulness, Relevancy, Context Precision, Context Recall")
+    print("-" * 60)
 
     # Reset and ingest
     reset_vectorstore()
@@ -113,6 +160,8 @@ def run_ragas_evaluation(pdf_path: str):
 
     faithfulness_scores = []
     relevancy_scores = []
+    precision_scores = []
+    recall_scores = []
 
     for i, (question, ground_truth) in enumerate(
         zip(TEST_QUESTIONS, GROUND_TRUTHS)
@@ -125,7 +174,6 @@ def run_ragas_evaluation(pdf_path: str):
             rag_result = pipeline.query_rag(question=question)
             answer = rag_result.get("answer", "")
 
-            # Clean answer
             if "\n\n Sources:" in answer:
                 answer = answer.split("\n\n Sources:")[0]
             if "Legal Disclaimer" in answer:
@@ -135,56 +183,73 @@ def run_ragas_evaluation(pdf_path: str):
             # Get context
             citations = rag_result.get("citations", [])
             context = " ".join([
-                str(c.get("text", ""))
-                for c in citations if c.get("text")
+                str(c.get("chunk_text", ""))
+                for c in citations
+                if c.get("chunk_text")
             ]) if citations else "No context retrieved"
 
-            print(f"  A: {answer[:100]}...")
+            print(f"  Context length: {len(context)} chars")
+
 
         except Exception as e:
             print(f"  RAG Error: {e}")
             answer = "Error occurred"
             context = "No context"
 
-        # Score faithfulness
+        # Score all 4 metrics
         print(f"  Scoring faithfulness...")
-        faith_score = score_faithfulness(answer, context)
-        faithfulness_scores.append(faith_score)
-        print(f"  Faithfulness: {faith_score:.3f}")
+        faith = score_faithfulness(answer, context)
+        faithfulness_scores.append(faith)
+        print(f"  Faithfulness:      {faith:.3f}")
 
-        # Score relevancy
         print(f"  Scoring relevancy...")
-        rel_score = score_answer_relevancy(question, answer)
-        relevancy_scores.append(rel_score)
-        print(f"  Relevancy: {rel_score:.3f}")
+        rel = score_answer_relevancy(question, answer)
+        relevancy_scores.append(rel)
+        print(f"  Answer Relevancy:  {rel:.3f}")
+
+        print(f"  Scoring context precision...")
+        prec = score_context_precision(question, context)
+        precision_scores.append(prec)
+        print(f"  Context Precision: {prec:.3f}")
+
+        print(f"  Scoring context recall...")
+        rec = score_context_recall(ground_truth, context)
+        recall_scores.append(rec)
+        print(f"  Context Recall:    {rec:.3f}")
 
         print()
 
-        # Wait between questions
         if i < len(TEST_QUESTIONS) - 1:
-            print(f"  Waiting 5 seconds before next question...")
+            print(f"  Waiting 5 seconds...")
             print()
             time.sleep(5)
 
-    # Calculate final scores
-    avg_faithfulness = sum(faithfulness_scores) / len(faithfulness_scores)
-    avg_relevancy = sum(relevancy_scores) / len(relevancy_scores)
+    # Calculate averages
+    avg_faith = sum(faithfulness_scores) / len(faithfulness_scores)
+    avg_rel = sum(relevancy_scores) / len(relevancy_scores)
+    avg_prec = sum(precision_scores) / len(precision_scores)
+    avg_rec = sum(recall_scores) / len(recall_scores)
 
-    print("=" * 50)
+    print("=" * 60)
     print("RAGAS EVALUATION RESULTS - LexAI")
-    print("=" * 50)
-    print(f"Faithfulness:      {avg_faithfulness:.3f}")
-    print(f"Answer Relevancy:  {avg_relevancy:.3f}")
-    print(f"Questions Tested:  {len(TEST_QUESTIONS)}")
-    print("=" * 50)
+    print("=" * 60)
+    print(f"Faithfulness:      {avg_faith:.3f}")
+    print(f"Answer Relevancy:  {avg_rel:.3f}")
+    print(f"Context Precision: {avg_prec:.3f}")
+    print(f"Context Recall:    {avg_rec:.3f}")
+    print("=" * 60)
 
     # Save results
     results = {
-        "faithfulness": round(avg_faithfulness, 3),
-        "answer_relevancy": round(avg_relevancy, 3),
+        "faithfulness": round(avg_faith, 3),
+        "answer_relevancy": round(avg_rel, 3),
+        "context_precision": round(avg_prec, 3),
+        "context_recall": round(avg_rec, 3),
         "individual_scores": {
             "faithfulness": [round(s, 3) for s in faithfulness_scores],
             "relevancy": [round(s, 3) for s in relevancy_scores],
+            "context_precision": [round(s, 3) for s in precision_scores],
+            "context_recall": [round(s, 3) for s in recall_scores],
         },
         "questions_tested": len(TEST_QUESTIONS),
         "model": settings.GROQ_MODEL,
