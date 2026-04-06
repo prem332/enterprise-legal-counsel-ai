@@ -14,7 +14,7 @@ class ChatRequest(BaseModel):
     session_id: Optional[str] = None
 
 class ClearRequest(BaseModel):
-    session_id:  Optional[str] = None
+    session_id: Optional[str] = None
 
 @router.post("/query")
 async def chat_query(request: ChatRequest):

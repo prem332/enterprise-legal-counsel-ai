@@ -29,7 +29,7 @@ def get_pinecone_store():
     if settings.PINECONE_USER_INDEX in existing:
         index_info = pc.describe_index(settings.PINECONE_USER_INDEX)
         if index_info.dimension != 384:
-            print(f"Dimension mismatch! Deleting and recreating index...")
+            print("Dimension mismatch! Deleting and recreating index...")
             pc.delete_index(settings.PINECONE_USER_INDEX)
             existing = []
 
